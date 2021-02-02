@@ -84,8 +84,6 @@ async def async_server() -> None:
 
 def async_main():
 
-    prometheus_port = 9000 + (LISTEN_PORT % 100)
-
     try:
         asyncio.run(async_server())
     except KeyboardInterrupt:
