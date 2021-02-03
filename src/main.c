@@ -36,6 +36,11 @@ struct arguments {
 	char* server_address;
 };
 
+/**
+ * Parse callback for the argp parser.
+ *
+ * Arguments are documented in the argp documentation
+ */
 static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 	struct arguments *arguments = state->input;
 
@@ -43,13 +48,13 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 		case 'c':
 			arguments->connection_count = atoi(arg);
 			if (arguments->connection_count < 1) {
-				return EINVAL; /* Invalid argument */
+				argp_error(state, "Connection count needs to be a positive integer\n");
 			}
 			break;
 		case 'm':
 			arguments->message_count = atoi(arg);
 			if (arguments->message_count < 1) {
-				return EINVAL; /* Invalid argument */
+				argp_error(state, "Message count needs to be a positive integer\n");
 			}
 			break;
 
