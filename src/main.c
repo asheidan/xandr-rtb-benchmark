@@ -1,10 +1,11 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <poll.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <argp.h>
@@ -76,6 +77,37 @@ static error_t parse_opt(int key, char* arg, struct argp_state *state) {
 
 static struct argp argp = { options, parse_opt, 0 /*args_doc*/, doc, 0, 0, 0 };
 
+
+/* Subtract the ‘struct timeval’ values X and Y,
+ * storing the result in RESULT.
+ *
+ * RETURN 1 if the difference is negative, otherwise 0.
+ *
+ * https://www.gnu.org/software/libc/manual/html_node/Calculating-Elapsed-Time.html
+ */
+int timeval_subtract (const struct timeval *x, struct timeval *y, struct timeval *result)
+{
+	/* Perform the carry for the later subtraction by updating y. */
+	if (x->tv_usec < y->tv_usec) {
+		int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+		y->tv_usec -= 1000000 * nsec;
+		y->tv_sec += nsec;
+	}
+	if (x->tv_usec - y->tv_usec > 1000000) {
+		int nsec = (x->tv_usec - y->tv_usec) / 1000000;
+		y->tv_usec += 1000000 * nsec;
+		y->tv_sec -= nsec;
+	}
+
+	/* Compute the time remaining to wait.
+	   tv_usec is certainly positive. */
+	result->tv_sec = x->tv_sec - y->tv_sec;
+	result->tv_usec = x->tv_usec - y->tv_usec;
+
+	/* Return 1 if result is negative. */
+	return x->tv_sec < y->tv_sec;
+}
+
 int main(int argc, char** argv) {
 	struct arguments arguments;
 	arguments.connection_count = 128;
@@ -85,9 +117,11 @@ int main(int argc, char** argv) {
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-	const size_t buf_size = 512;
+	const size_t buf_size = 512;  /* TODO: Expose this as a setting */
 	char recv_buf[buf_size];
 	int sock_fds[arguments.connection_count];
+
+	struct timeval starttime, endtime, runtime;
 
 	struct addrinfo hints, *addrinfo;
 	memset(&hints, 0, sizeof(hints));
@@ -95,12 +129,12 @@ int main(int argc, char** argv) {
 	hints.ai_socktype = SOCK_STREAM;
 	int gai_error = getaddrinfo(arguments.server_address, arguments.server_port, &hints, &addrinfo);
 	if (gai_error) {
-		fprintf(stderr, "Faile: %s\n", gai_strerror(gai_error));
+		fprintf(stderr, "Fail: %s\n", gai_strerror(gai_error));
 		return -42;
 	}
 
-	fprintf(stderr, "Opening sockets...\n");
-	fprintf(stderr, "addr: %s\n", inet_ntoa(((struct sockaddr_in*)addrinfo->ai_addr)->sin_addr));
+	fprintf(stderr, "Opening %d sockets...\n", arguments.connection_count);
+	fprintf(stderr, "addr: %s:%s\n", inet_ntoa(((struct sockaddr_in*)addrinfo->ai_addr)->sin_addr), arguments.server_port);
 	for (int s = 0; s < arguments.connection_count; ++s) {
 		int sock_fd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
 		if (0 > sock_fd) {
@@ -120,7 +154,8 @@ int main(int argc, char** argv) {
 	struct pollfd poll_struct;
 	poll_struct.events = POLLIN;
 	poll_struct.revents = 0;
-	fprintf(stderr, "Sending messages...\n");
+	fprintf(stderr, "Sending %d messages...\n", arguments.message_count, arguments.message_count);
+	gettimeofday(&starttime, NULL);
 	for (int i = 0; i < arguments.message_count; ++i) {
 		int sock_num = rand() % arguments.connection_count;
 		int sock_fd = sock_fds[sock_num];
@@ -130,11 +165,17 @@ int main(int argc, char** argv) {
 		int poll_ret = poll(&poll_struct, 1, -1);
 		int recv_count = read(sock_fd, recv_buf, buf_size);
 	}
+	gettimeofday(&endtime, NULL);
+	timeval_subtract(&endtime, &starttime, &runtime);
 
 	fprintf(stderr, "Closing sockets...\n");
 	for (int s = 0; s < arguments.connection_count; ++s) {
 		close(sock_fds[s]);
 	}
+
+	fprintf(stdout, "%4d %7d %ld.%06ld\n",
+			arguments.connection_count, arguments.message_count,
+			runtime.tv_sec, runtime.tv_usec);
 
 	return 0;
 }
