@@ -133,8 +133,8 @@ int main(int argc, char** argv) {
 		return -42;
 	}
 
+	fprintf(stderr, "Address: %s:%s\n", inet_ntoa(((struct sockaddr_in*)addrinfo->ai_addr)->sin_addr), arguments.server_port);
 	fprintf(stderr, "Opening %d sockets...\n", arguments.connection_count);
-	fprintf(stderr, "addr: %s:%s\n", inet_ntoa(((struct sockaddr_in*)addrinfo->ai_addr)->sin_addr), arguments.server_port);
 	for (int s = 0; s < arguments.connection_count; ++s) {
 		int sock_fd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol);
 		if (0 > sock_fd) {

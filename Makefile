@@ -15,7 +15,7 @@ build:
 
 data/%/data.txt: implementations/%.py $(TARGET) testbench.sh
 	test -e $(@D) || mkdir -p $(@D)
-	./testbench.sh $(TARGET) $< $(DATASET_CONNECTIONS)
+	./testbench.sh $(TARGET) $< $(DATASET_CONNECTIONS) > $@
 
 clean:
 	rm -r build
