@@ -5,8 +5,9 @@ IMPLEMENTATIONS = async_protocol
 TARGET := benchmark
 
 DATASET_CONNECTIONS = 1 10 128 256 512 1024 2048 3072 4096 5120 6144 7168 8192
+default: $(TARGET)
 
-default: $(patsubst %,data/%/data.txt,$(IMPLEMENTATIONS))
+datafiles: $(patsubst %,data/%/data.txt,$(IMPLEMENTATIONS))
 
 $(TARGET): build/main.o
 	$(LINK.o) $(OUTPUT_OPTION) $^
