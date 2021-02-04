@@ -1,0 +1,6 @@
+.*.sw?
+*~
+
+# Build artefacts
+/build/*.o
+/benchmark
