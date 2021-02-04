@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# TODO: Do N test repeats to allow for local scheduling jitter
+
 benchmark=$1
 shift 1
 
