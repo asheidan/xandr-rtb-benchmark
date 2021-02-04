@@ -154,16 +154,16 @@ int main(int argc, char** argv) {
 	struct pollfd poll_struct;
 	poll_struct.events = POLLIN;
 	poll_struct.revents = 0;
-	fprintf(stderr, "Sending %d messages...\n", arguments.message_count, arguments.message_count);
+	fprintf(stderr, "Sending %d messages...\n", arguments.message_count);
 	gettimeofday(&starttime, NULL);
 	for (int i = 0; i < arguments.message_count; ++i) {
 		int sock_num = rand() % arguments.connection_count;
 		int sock_fd = sock_fds[sock_num];
-		int send_count = send(sock_fd, MESSAGE, message_len, 0);
+		send(sock_fd, MESSAGE, message_len, 0);
 
 		poll_struct.fd = sock_fd;
-		int poll_ret = poll(&poll_struct, 1, -1);
-		int recv_count = read(sock_fd, recv_buf, buf_size);
+		poll(&poll_struct, 1, -1);
+		read(sock_fd, recv_buf, buf_size);
 	}
 	gettimeofday(&endtime, NULL);
 	timeval_subtract(&endtime, &starttime, &runtime);
